@@ -1,0 +1,23 @@
+URL_FIRST_PART = 'http://houseplantshop.com'
+URL_SECOND_PART_FIRST_TIME = '/collections/all-products?'
+URL_PAGE_TAG = '?page=1&grid_list=grid-view'
+ATTEMPTS = 3
+CHARACTERS_TO_STRIP = '\n '
+CURRENCY_SIGN = '$'
+HAS_OPTIONS = 'from'
+VALID = 0
+NO_PRICE = ''
+IGNORE = 3
+COLON = ':'
+NOT_FOUND = -1
+NEW_LINE = '\n'
+SEPARATOR = ' - '
+OK_RESPONSE = '<Response [200]>'
+FIRST = 0
+ONLY = 0
+LAST = -1
+BATCH_SIZE = 10
+FEATURE_INDEX = 0
+URL_INDEX = 1
+PAGES_INDICATOR_INDEX = -2
+PRODUCT_INDEX = 2
