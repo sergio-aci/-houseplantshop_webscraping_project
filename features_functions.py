@@ -1,3 +1,9 @@
+"""
+Authors: Isaac Misri, Sergio Drajner
+Description: This file contains all the functions that are used to extract
+the feature options from the url.
+"""
+
 import web_scraper_config as CFG
 import grequests
 import requests

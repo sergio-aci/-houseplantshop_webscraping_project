@@ -1,3 +1,9 @@
+"""
+Authors: Isaac Misri, Sergio Drajner
+Description: This file contains all the functions that are used to extract
+all product information for each product listed.
+"""
+
 import web_scraper_config as CFG
 import requests
 from bs4 import BeautifulSoup
