@@ -206,6 +206,7 @@ def output_products(products_names, products_prices, products_are_sold_out):
             for name, price, is_sold_out in zip(products_names,
                                                 products_prices,
                                                 products_are_sold_out):
+                print(f"""Name: {name} Price: {price} Is sold out: {is_sold_out}""")
                 products_data.writerow([name, price, is_sold_out])
     except Exception:
         print('There was an error writing to the products file')
