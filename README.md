@@ -1,26 +1,28 @@
 # House Plant Shop Webscraping Project
-February, 2021 (v1.0)
+April, 2021 (v2.0)
 
-This webscraper is currently being developed by Sergio Drajner and
+This webscraper (v2.0) is currently being developed by Sergio Drajner and
 Isaac Misri as part of the ITC Data Science Fellows Program 
 
-### Description
+## Description
 Plants and plant products are sold in many different varieties. Even
 with filtering capabilities provided by web shops, often times it
 can be difficult to sort through all products in an organized manner with
 customized filters. The webscraper being developed is meant to extract 
-all relevant data about products and plants sold by House Plant Shop,
+relevant data about products and plants sold by House Plant Shop,
 a large houseplant webshop located at 
 https://houseplantshop.com/collections/all-products
 
 ![](.README_images/houseplants.png)
 
 
-### Setup
-The webscraper is being developed using python and several packages
-which can be found in the requirements.txt file. To run the webscraper,
+## Setup
+v2.0 of the webscraper is being developed using python and several packages
+which can be found in the requirements.txt file. To set up the webscraper,
 simply:
-1. Download python or ensure that you have python installed
+1. Download python or ensure that you have the latest version of 
+python installed. For optimal use ensure you have python 3.9 or a later
+version
 2. Open the terminal or command line interface
 3. Go to the directory where the webscraper project is saved 
 4. Use the package manager pip to install packages using 
@@ -29,25 +31,14 @@ requirements.txt
     pip install -r requirements.txt
     ```
 5. Run the webscraper using the terminal or command line interface
-by opening the web_scraper.py file
+by opening the web_scraper.py file. This will run the webscraper on all
+its default values. To configure the setting of the webscraper. Read below
+in the **CLI Commands** section
     ```console
     python3 web_scraper.py
     ```
 
-
-### Usage
-Running web_scraper.py will produce two .csv files. 
-1. The features.csv file contains a list of product features along with 
-the products that contain or correspond to each feature. Some features 
-include air purifier, pet friendly, genus/family of plant etc... 
-Along with each of these features, a list of products that fall into 
-these categories is generated.
-
-2. The products.csv file contains a list of the name, price, options and
-availability of all the products being sold on the webpage. 
-
-
-### Problems encountered
+## Problems encountered
 While testing the program, few issues were encountered.
 Occasionally when attempting to request the html code for the 
 product features, a None response was returned when using grequests. 
@@ -58,6 +49,269 @@ continue running without scraping through the inaccessible data.
 
 Another similar issue was encountered when trying to access the html
 code of each product. If the first request is unsuccessful,
-the program will attempt to request the html code two more times. If
-these requests are unsuccessful, the program will exit and only the
-data extracted until the point will be returned.  
+the program will attempt to request the html code a number of times as
+is specified by the default value defined in web_scraper_config.py file.
+Users may specify the number of attempts as is discussed in the **CLI Commands**
+section of this document. If these requests are unsuccessful, the program will 
+disregard that particular product and will continue with the next products
+and pages
+
+## CLI Commands
+web_scraper.py v2.0 offers users much more flexibility by introducing
+a CLI using python's click module. Users may now specify which sort
+of information they would like to gather, where they would like to get the
+data from, if and how to display it, whether to store the scraped data or not
+and if so where, and other options that are described below.
+
+After typing
+    
+    python3 web_scraper.py
+    
+users may add from the following options/flags to filter and customize their search:
+
+**--help / -h** option
+    
+    python3 web_scraper.py --help
+The help option displays a message to the user, describing how each
+flag and option works
+
+**--version** option
+
+    python3 web_scraper.py --version
+The version option displays the version of the webscraper in use
+
+**--product** option
+
+Users may choose specific products to display with this option. If the product
+being searched for is one word, no quotation marks are necessary. 
+However if two or more words are being search for, quotation marks must be used.
+If for example a user only wants to view products with succulent in
+the product name, they could type the following command:
+
+    python3 web_scraper.py --product succulent
+
+If a user wants to view products with air plant in the product name, they could
+use the following command:
+
+    python3 web_scraper.py --product "air plant"
+
+The product option is not case sensitive and the default is to search
+for all products
+
+
+**--feature** option
+
+Users may choose to display products that have specific features 
+with this option. The feature option works similarly to the product option.
+If the feature being searched for is one word, no quotation marks are necessary. 
+However if two or more words are being search for, quotation marks must be used.
+If for example a user only wants to view products that have cactus as a feature
+they could write:
+
+    python3 web_scraper.py --feature cactus
+
+Similar to the product option, the feature option is also not case sensitive
+and the default is to search for all features
+
+**--price / -p** option
+
+Users may filter out products by price. After using the --price option,
+insert a range (inclusive) of values using two numerical values. For example:
+    
+    python3 web_scraper.py --price 9.95 20.95
+    
+will return products whose prices are within the range of $9.95 and $20.95.
+If no price is specified, the default is to search all prices
+
+
+**--output / -o** option
+
+Users have a choice to send the output of the webscraper to a csv file, 
+json file or to an SQL database. The default for the output option is no output,
+meaning that the data will not be stored. After using the --output option,
+users may choose csv, json or db. If csv or json are selected, the output
+files will be called products.csv/json and features.csv/json and they
+will be stored in the same directory as the scripts.
+
+
+**--sort / -s** option
+
+Users may choose to have their data sorted by alphabetical order
+or by price. The default is that the data will be unsorted.
+They may also choose whether they want their data
+to be in ascending or descending order. The default is ascending.
+After using the --sort flag, users may choose one of the following options:
+
+* n: sorts by name in ascending order
+* p: sorts by price in ascending order 
+* na: sorts by name in ascending order
+* nd: sorts by name in descending order 
+* pa: sorts by price in ascending order 
+* pd: sorts by price in descending order
+
+**--iterations / -i** option
+
+Occasionally, the request sent to access the html code of the url will not 
+respond. The --iterations flag allows users to specify how many times they
+would like to attempt to access the url. The default value is stored in
+a variable located in web_scraper_config.py
+
+**--wait-time / -w** option
+
+The wait time option allows users to specify the amount of time (in seconds)
+to wait in between scraping attempts.
+The default value is stored in a variable located in web_scraper_config.py
+
+**--sold-out / -so, --not-sold-out / -nso** option
+
+As products are constantly being updated, users may specify if they would
+only like to display products that are not sold out or that have been sold out.
+The default is to display all products
+
+**--scrape/--no-scrape** flag
+
+This flag allows users to perform a web scrape or to extract the data
+from products.csv and features.csv files when --no-scrape is selected.
+The csv files must be located in the same directory as the script.
+Users may use this flag to be used later if they choose not to scrape.
+The default is to scrape
+
+**--screen/--no-screen** flag
+
+Users may choose to have the dataframes created by the webscraper displayed to their
+screen or not. The default is True
+
+**--break-down/--no-breakdown** flag
+
+This flag allows users to choose whether or not to display products by
+feature or only display the products on their own. The default is no
+breakdown. Some products may not be related to features. If no feature is 
+requested to be filtered (i.e., --feature not used)  and --no-break-down is 
+selected, all products (whether they have a feature or not) will be displayed.
+
+**Examples of CLI commands**
+
+    python3 web_scraper.py  
+Will scrape all the features and all products and display the resulting data 
+to the screen in an unsorted manner
+
+
+    python3 web_scraper.py --no-scrape --break-down --sort nd --product planter --feature planter
+Will retrieve the data from features.csv and products.csv files, 
+filter out those features and products that contain 'planter', 
+and display the products broken down by features, sorted by name in descending order
+
+    python3 web_scraper.py -o db --no-screen 
+Will scrape all features and products and write them in a database without displaying
+the data to the screen
+
+    python3 web_scraper.py --product succulent  --no-scrape  -s n --output csv -so 
+Will retrieve the data from csv files and display succulent products that 
+are sold out, sorted alphabetically in ascending order and write them 
+(together with the corresponding features) to the products.csv and features.csv files.
+
+    python3 web_scraper.py --no-scrape --product  evergreen      
+Will return all products containing 'evergreen', unsorted, no matter 
+if they have a feature or not, and displayed to the screen
+
+
+## SQL Database Layout
+SQL was used to create a database that would store the 
+product information scraped from the webshop. 
+The database contains 4 tables:
+1. general_product_names
+2. all_products
+3. features
+4. features_prod_join
+
+Before describing each table and its columns, some general
+information about products and product types:
+
+Every product scraped was given a unique product_id. However, many
+different products can come from the same type of product. For example,
+a Plastic Saucer comes in a 4", 6" and 10" sizes. In this case, 
+the three products will have a unique product_id, but they will 
+share the same type_id because they are all Plastic Saucers.
+
+### general_product_names
+
+general_product_names contains type_id and product_name columns. The
+primary key for this table is type_id.
+In this table, each unique type_id is matched with its 
+corresponding product type. Using the Plastic Saucer example above,
+this means that every Plastic Saucer will have the same type_id.
+
+![](.README_images/saucer_general.png)
+
+
+### all_products
+
+all_products contains product_id, type_id, full_product_name,
+price, and sold_out columns. The primary key for this table is product_id.
+In this table, all the unique products with their unique product_ids
+and non unique type_ids are recorded with their prices and whether 
+or not they are sold out. Using the Plastic Saucer as an example
+below, we see that all three Plastic Saucers have a unique product_id and share
+the same type_id as they are all Plastic Saucers. Each one of their prices
+is given and information about whether or not they are sold is provided
+in the sold_out column by a boolean where 0 indicates False (not sold out)
+and 1 indicates True (sold out)
+
+
+![](.README_images/saucer_all.png)
+
+
+Plants and products can also be searched by features. For example, the feature
+"Air Purifier", includes many different plant types. 
+The feature_prod_join table matches the many to many relationship between
+the features and product types. 
+
+
+### features
+
+The features table contains feature_id and feature_name as columns. 
+feature_id serves as the primary key. This table stores all the product features
+on the webshop and assigns each of them a unique feature_id. 
+
+   ![](.README_images/features.png)
+
+
+### features_prod_join
+
+The feature_prod_join table contains feature_id and product_name columns.
+This table matches the many to many relationship between the features and 
+product types.
+
+   ![](.README_images/featuresjoin.png)
+
+For more information on the database layout please refers to the attached
+ERD diagram (plant_db_ERD.pdf)
+
+
+## SQL Database Usage
+This section will serve as a walkthrough to successfully integrate the
+SQL database with the webscraper. Make sure you set up the database
+before running the webscraper if you wish to store your data in SQL.
+
+1. Make sure you have MySQL workbench installed
+2. Open MySQL workbench and load create_db.sql
+
+    ![](.README_images/sql_load.png)
+    
+3. Run the entire script. A new database named plant_db will be created. 
+To check, first open mysql in the command line. 
+Using the following command, a list of databases will be returned
+ 
+    ![](.README_images/sql_terminal.png)
+       
+4. In the project files, open web_scraper_config.py
+
+    ![](.README_images/config.png)
+    
+5. At the bottom of the page you will find constants that start with SQL
+6. Fill in the relevant information for each variable
+    
+    ![](.README_images/sql_var.png)
+    
+7. Now you're all setup! Once you run the webscraper and select db for 
+the --output option, your data will be recorded in the database!

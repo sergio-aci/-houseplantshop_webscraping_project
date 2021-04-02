@@ -10,6 +10,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import csv
+import json
 
 
 def get_feature(feature, additional_features_and_urls):
@@ -127,8 +128,8 @@ def process_additional_page_products(num_pages, feature_and_url, product_names, 
     a feature and appends product names to a list for a given feature
     """
     for page_num in range(2, num_pages + 1):
-        print(f'Now extracting from Page {page_num} of Feature: '
-              f'{feature_and_url[CFG.FEATURE_INDEX]} ')
+        # print(f'Now extracting from Page {page_num} of Feature: '
+        #       f'{feature_and_url[CFG.FEATURE_INDEX]} ')
         new_url = feature_and_url[CFG.URL_INDEX] \
             .replace(f'page={current_page}', f'page={page_num}')
         new_page_soup = make_soup(new_url)
@@ -158,8 +159,8 @@ def process_feature(rs, index, unavailable_pages, feature_and_url,
         num_pages = get_num_pages(soup)
         current_page = int(re.search('page=(\d)',
                                      feature_and_url[CFG.URL_INDEX]).group(1))
-        print(f'Now extracting from Page 1 of Feature: '
-              f'{feature_and_url[CFG.FEATURE_INDEX]}')
+        # print(f'Now extracting from Page 1 of Feature: '
+        #       f'{feature_and_url[CFG.FEATURE_INDEX]}')
 
         all_product_info = find_all_products(soup)
         process_first_page_product(all_product_info, product_names)
@@ -170,9 +171,9 @@ def process_feature(rs, index, unavailable_pages, feature_and_url,
 
         feature_and_url.append(product_names)
         feature_dict[feature_and_url[CFG.FEATURE_INDEX]] = product_names
-        print(feature_and_url)
-        print(f'products in {feature_and_url[CFG.FEATURE_INDEX]} feature: '
-              f'{len(feature_and_url[CFG.PRODUCT_INDEX])}')
+        # print(feature_and_url)
+        # print(f'products in {feature_and_url[CFG.FEATURE_INDEX]} feature: '
+        #       f'{len(feature_and_url[CFG.PRODUCT_INDEX])}')
 
 
 def process_features(feature_url_list):
@@ -193,7 +194,7 @@ def process_features(feature_url_list):
         process_feature(rs, index, unavailable_pages, feature_and_url,
                         feature_dict)
     print('*******************************************************')
-    print(f'scraper encountered {unavailable_pages} unavailable pages')
+    print(f'scraper encountered {unavailable_pages} unavailable features pages')
     print('*******************************************************')
 
     return feature_dict
@@ -214,6 +215,20 @@ def get_additional_information():
     dict_file = open('features.csv', 'w')
     writer = csv.writer(dict_file)
     for feature, plants in features_info.items():
-        print(feature, plants)
+        # print(feature, plants)
         writer.writerow([feature, plants])
     dict_file.close()
+
+
+def output_json():
+    """
+    This function creates a json formated file with all the features on the webshop and the products
+    that correspond to that feature.
+    """
+    features_and_urls = get_features(CFG.URL_FIRST_PART
+                                     + CFG.URL_SECOND_PART_FIRST_TIME
+                                     + CFG.URL_PAGE_TAG)
+    features_info = process_features(features_and_urls)
+
+    with open('features.txt', 'w') as outfile:
+        json.dump(features_info, outfile, indent=4)
