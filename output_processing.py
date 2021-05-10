@@ -3,8 +3,9 @@ Authors: Isaac Misri, Sergio Drajner
 Description: This script contains functions that are used to filter,
 sort, display and output features and products.
 """
-import web_scraper_config as CFG
+
 import pandas as pd
+import web_scraper_config as CFG
 
 
 def sort_result(features, products, **kwargs):

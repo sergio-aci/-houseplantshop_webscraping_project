@@ -2,8 +2,10 @@
 Authors: Isaac Misri, Sergio Drajner
 Description: This script scrapes a web site for the data mining project.
 """
-import logging
+import gevent.monkey
+gevent.monkey.patch_all(thread=False, select=False)
 
+import logging
 import click
 from product_info_functions import Products
 from features_functions import Features
@@ -29,14 +31,18 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
               type=int)
 @click.option('--sleep', '-sl', help='How long do you want to wait between attempts to scrape '
                                      'the data (in seconds)?', type=int)
-@click.option('--sold-out/--not-sold-out', '-so/-nso', help="Items sold out or not (default: All)", default=None)
+@click.option('--sold-out/--not-sold-out', '-so/-nso',
+              help="Items sold out or not (default: All)", default=None)
 @click.option('--scrape/--no-scrape', help='Where is the data coming from? Choose --no-scrape'
                                            'if you want to get it from csv files (Default: '
                                            'scrape', default=True)
 @click.option('--verbose/--no-verbose', help='Display to screen (Default: yes)?', default=True)
-@click.option('--break-down/--no-break-down', help='Break down display to screen by feature? '
-                                                   'If not, will only show the '
-                                                   'products (Default: only show products)', default=False)
+@click.option('--enrich/--not-enrich',
+              help='Enrich data base from API (Default: no)?', default=False)
+@click.option('--break-down/--no-break-down',
+              help='Break down display to screen by feature? '
+                   'If not, will only show the products '
+                   '(Default: only show products)', default=False)
 def main(**kwargs):
     """
     Welcome to the web scraper by Sergio and Isaac!
@@ -49,13 +55,19 @@ def main(**kwargs):
                         format='%(asctime)s-%(levelname)s-FILE:%(filename)s-'
                                'FUNC:%(funcName)s-LINE:%(lineno)d-%(message)s',
                         level=logging.INFO)
-    logging.info(f"\tStart of script.")
+    logging.info("\tStart of script.")
     houseplant_features = Features(**kwargs)
     houseplant_products = Products(houseplant_features.features_and_products_df, **kwargs)
     if kwargs['sort'] is not None:
         op.sort_result(houseplant_features, houseplant_products, **kwargs)
     op.output_result(houseplant_features, houseplant_products, **kwargs)
-    logging.info(f"\tEnd of script.")
+    if kwargs['enrich'] is None or kwargs['enrich'] :
+        api_products_and_features = Features.create_api_dict()
+        Features.api_features_to_sql(api_products_and_features)
+        Products.api_products_to_sql(api_products_and_features)
+
+if __name__ == '__main__':
+    logging.info("\tEnd of script.")
 
 
 if __name__ == '__main__':

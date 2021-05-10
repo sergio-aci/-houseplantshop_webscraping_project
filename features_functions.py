@@ -4,21 +4,29 @@ Description: This file contains all the functions that are used to extract
 the feature options from the url.
 """
 
-import web_scraper_config as CFG
-import grequests
-import requests
-from bs4 import BeautifulSoup
-import pandas as pd
 import re
 import csv
 import json
-import pymysql.cursors
 import logging
+from bs4 import BeautifulSoup
+import requests
+import grequests
+import pandas as pd
+import pymysql.cursors
+import web_scraper_config as CFG
 
 
 class Features:
+    """
+    This is the class related to the information of Features.
+    """
     def __init__(self, **kwargs):
-        self.features_df, self.features_and_products_df = self.process_features_and_products(**kwargs)
+        """
+        Contructor for Features.
+        :param kwargs:
+        """
+        self.features_df, self.features_and_products_df = \
+            self.process_features_and_products(**kwargs)
 
     def process_features_and_products(self, **kwargs):
         """
@@ -28,7 +36,7 @@ class Features:
         :return: features_df: dataframe
         """
         if kwargs['scrape']:
-            Features.get_additional_information()
+            Features.get_information()
         features_to_filter_df = pd.read_csv('features.csv', names=['Feature', 'Products'])
         features_to_filter_df['Products'] = features_to_filter_df['Products'] \
             .apply(lambda x: x[CFG.BEGINNING:CFG.END].split(', '))
@@ -50,8 +58,10 @@ class Features:
             kwargs['feature'] = ''
         if kwargs['product'] is None:
             kwargs['product'] = ''
-        filter = (features_to_filter_df['Feature'].str.contains(kwargs['feature'], case=False, regex=False))
-        features_to_filter_df = features_to_filter_df[filter]
+        feature_filter = (features_to_filter_df['Feature'].str.contains(kwargs['feature'],
+                                                                        case=False,
+                                                                        regex=False))
+        features_to_filter_df = features_to_filter_df[feature_filter]
         features_copy_df = features_to_filter_df.copy()
         features_copy_df['Products'] = features_copy_df['Products'].apply(
                 lambda product_list: [Features.clean_product(product) for product in product_list
@@ -80,12 +90,22 @@ class Features:
         return product
 
     def sort_features(self, is_in_ascending_order):
+        """
+        Sorts the features and its related products according to the desired order.
+        :param is_in_ascending_order: order features and products are to be sorted
+        :return:
+        """
         self.features_df.sort_values(by='Feature', ascending=is_in_ascending_order, inplace=True)
         self.features_df['Products'] = self.features_df['Products'] \
             .sort_values() \
             .apply(lambda product_list: sorted(product_list, reverse=not is_in_ascending_order))
 
     def display_features(self, products):
+        """
+        Displays the features and its related products.
+        :param products: Products object
+        :return:
+        """
         for row in self.features_df.itertuples():
             print('Feature:', row[CFG.FEATURE])
             print()
@@ -162,6 +182,11 @@ class Features:
         connection.close()
 
     def output_features(self, **kwargs):
+        """
+        Outputs the features per the attached parameters.
+        :param kwargs: parameters to be used for outputting
+        :return:
+        """
         if kwargs['output'].lower() == 'csv':
             self.features_df.to_csv('features.csv')
         elif kwargs['output'].lower() == 'json':
@@ -285,8 +310,8 @@ class Features:
     @staticmethod
     def process_additional_page_products(num_pages, feature_and_url, product_names, current_page):
         """
-        This function processes all features that have more than 1 page. It iterates through all the pages of
-        a feature and appends product names to a list for a given feature
+        This function processes all features that have more than 1 page. It iterates
+        through all the pages of a feature and appends product names to a list for a given feature
         """
         for page_num in range(2, num_pages + 1):
             # print(f'Now extracting from Page {page_num} of Feature: '
@@ -341,7 +366,7 @@ class Features:
             #       f'{len(feature_and_url[CFG.PRODUCT_INDEX])}')
 
     @staticmethod
-    def get_additional_information():
+    def get_information():
         """
         This function is the top level function for executing all other
         feature functions. It calls get_features() to extract all features
@@ -393,14 +418,83 @@ class Features:
     @staticmethod
     def output_json():
         """
-        This function creates a json formated file with all the features on the webshop and the products
-        that correspond to that feature.
+        This function creates a json formated file with all the features on
+        the webshop and the products that correspond to that feature.
         """
         features_and_urls = \
             Features.get_features(CFG.URL_FIRST_PART
             + CFG.URL_SECOND_PART_FIRST_TIME
             + CFG.URL_PAGE_TAG)
         features_info = Features.process_features(features_and_urls)
-
         with open('features.txt', 'w') as outfile:
             json.dump(features_info, outfile, indent=4)
+
+    @staticmethod
+    def create_api_dict():
+        """
+        This function sends a request to the growstuff.org api and returns a dictionary of crops and
+        their corresponding features.
+        """
+
+        logging.info('Retrieving API info')
+
+        api_dict = {}
+        api = 'https://www.growstuff.org/api/v1/crops'
+        response = requests.get(api)
+        for entry in response.json().get('data'):
+            if entry.get('attributes').get('perennial') is False:
+                feature = 'no feature'
+            else:
+                feature = 'perennial'
+
+            api_dict[entry.get('attributes').get('name')] = feature
+
+        logging.info('API info retrieved')
+        return api_dict
+
+    @staticmethod
+    def api_features_to_sql(api_info):
+        """
+        This function take a dictionary with crops and their features and inserts the data into the
+        tables relevant to features in the SQL database that has already been created.
+        """
+
+        logging.info('Updating database with features API info')
+        connection = pymysql.connect(host=CFG.SQL_HOST,
+                                     user=CFG.SQL_USER,
+                                     password=CFG.SQL_PASS,
+                                     db=CFG.SQL_DB,
+                                     charset=CFG.SQL_CHARSET,
+                                     cursorclass=pymysql.cursors.DictCursor
+                                     )
+        cursor = connection.cursor()
+        connection.commit()
+
+        sql_count_features = """ Select count(*) from features"""
+        cursor.execute(sql_count_features)
+        feature_counts = cursor.fetchall()[0].get('count(*)')
+
+        new_features = set([value for value in api_info.values()])
+        for feature in new_features:
+            try:
+                with connection.cursor() as cursor:
+                    sql_feature = """ INSERT INTO features VALUES (%s, %s)"""
+                    cursor.execute(sql_feature, (feature_counts, feature))
+                connection.commit()
+            except Exception:
+                pass
+
+            for product in api_info.keys():
+                if api_info.get(product) == feature:
+                    try:
+                        with connection.cursor() as cursor:
+                            sql_feature_prod_join = \
+                                """ INSERT INTO features_prod_join VALUES (%s, %s)"""
+                            cursor.execute(sql_feature_prod_join, (feature_counts, product))
+                        connection.commit()
+                    except Exception:
+                        pass
+            feature_counts += 1
+
+        logging.info('Feature api update completed')
+        connection.close()

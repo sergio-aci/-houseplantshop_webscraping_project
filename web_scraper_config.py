@@ -1,3 +1,8 @@
+"""
+Authors: Isaac Misri, Sergio Drajner
+Description: This file contains constants used throughout the web scraper module.
+"""
+
 URL_FIRST_PART = 'http://houseplantshop.com'
 URL_SECOND_PART_FIRST_TIME = '/collections/all-products?'
 URL_PAGE_TAG = '?page=1&grid_list=grid-view'
@@ -39,8 +44,10 @@ NAME_INDEX = 0
 TYPE_INDEX = 1
 OPTION_INDEX = 2
 
-SQL_PASS = 'Ineedajob1!'
+SQL_PASS = 'MyNewPass'
 SQL_HOST = 'localhost'
 SQL_USER = 'root'
 SQL_DB = 'plant_db'
 SQL_CHARSET = 'utf8mb4'
+
+API_ADDRESS = 'https://www.growstuff.org/api/v1/crops'

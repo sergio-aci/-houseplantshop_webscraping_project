@@ -1,7 +1,7 @@
 # House Plant Shop Webscraping Project
-April, 2021 (v2.0)
+May 2021 (v3.0)
 
-This webscraper (v2.0) is currently being developed by Sergio Drajner and
+This webscraper (v3.0) is currently being developed by Sergio Drajner and
 Isaac Misri as part of the ITC Data Science Fellows Program 
 
 ## Description
@@ -17,51 +17,34 @@ https://houseplantshop.com/collections/all-products
 
 
 ## Setup
-v2.0 of the webscraper is being developed using python and several packages
+v3.0 of the webscraper is being developed using python and several packages
 which can be found in the requirements.txt file. To set up the webscraper,
 simply:
 1. Download python or ensure that you have the latest version of 
 python installed. For optimal use ensure you have python 3.9 or a later
 version
 2. Open the terminal or command line interface
-3. Go to the directory where the webscraper project is saved 
+3. Find the directory where the webscraper project is saved 
 4. Use the package manager pip to install packages using 
 requirements.txt
-    ```console
-    pip install -r requirements.txt
+    ```
+    pip3 install -r requirements.txt
     ```
 5. Run the webscraper using the terminal or command line interface
 by opening the web_scraper.py file. This will run the webscraper on all
 its default values. To configure the setting of the webscraper. Read below
 in the **CLI Commands** section
-    ```console
+    ```
     python3 web_scraper.py
     ```
 
-## Problems encountered
-While testing the program, few issues were encountered.
-Occasionally when attempting to request the html code for the 
-product features, a None response was returned when using grequests. 
-The program was modified to continue running even when encountering this 
-issue. If for whatever reason, the html code of a particular features page 
-cannot be accessed, the user will be notified and the code will 
-continue running without scraping through the inaccessible data.
-
-Another similar issue was encountered when trying to access the html
-code of each product. If the first request is unsuccessful,
-the program will attempt to request the html code a number of times as
-is specified by the default value defined in web_scraper_config.py file.
-Users may specify the number of attempts as is discussed in the **CLI Commands**
-section of this document. If these requests are unsuccessful, the program will 
-disregard that particular product and will continue with the next products
-and pages
-
 ## CLI Commands
-web_scraper.py v2.0 offers users much more flexibility by introducing
+web_scraper.py v3.0 offers users much more flexibility by introducing
 a CLI using python's click module. Users may now specify which sort
 of information they would like to gather, where they would like to get the
 data from, if and how to display it, whether to store the scraped data or not
-and if so where, and other options that are described below.
+and if so where, to enrich the database with information collected from an
+API, and other options that are described below.
 
 After typing
     
@@ -149,16 +132,16 @@ After using the --sort flag, users may choose one of the following options:
 * pa: sorts by price in ascending order 
 * pd: sorts by price in descending order
 
-**--iterations / -i** option
+**--retries / -r** option
 
 Occasionally, the request sent to access the html code of the url will not 
-respond. The --iterations flag allows users to specify how many times they
+respond. The --retries flag allows users to specify how many times they
 would like to attempt to access the url. The default value is stored in
 a variable located in web_scraper_config.py
 
-**--wait-time / -w** option
+**--sleep / -sl** option
 
-The wait time option allows users to specify the amount of time (in seconds)
+The sleep option allows users to specify the amount of time (in seconds)
 to wait in between scraping attempts.
 The default value is stored in a variable located in web_scraper_config.py
 
@@ -176,10 +159,14 @@ The csv files must be located in the same directory as the script.
 Users may use this flag to be used later if they choose not to scrape.
 The default is to scrape
 
-**--screen/--no-screen** flag
+**--verbose/--no-verbose** flag
 
-Users may choose to have the dataframes created by the webscraper displayed to their
-screen or not. The default is True
+Users may choose to have the dataframes created by the webscraper displayed 
+to their screen or not. The default is True. Be aware that the entire dataframe
+will be displayed in verbose mode with approximately 1000 entries.
+To minimize this, please use a filter to display fewer results or 
+use the --no-verbose flag to avoid displaying the dataframe at all.
+To check the progress of the web scraper, please refer to the log file.
 
 **--break-down/--no-breakdown** flag
 
@@ -188,6 +175,13 @@ feature or only display the products on their own. The default is no
 breakdown. Some products may not be related to features. If no feature is 
 requested to be filtered (i.e., --feature not used)  and --no-break-down is 
 selected, all products (whether they have a feature or not) will be displayed.
+
+**--enrich /--not-enrich** flag
+
+This option will enrich the existing database with new entries collected 
+from a public API. All 4 tables in the database will be updated 
+with new information. The address for the API can be found in the 
+web_scraper_config.py file.
 
 **Examples of CLI commands**
 
@@ -214,6 +208,17 @@ are sold out, sorted alphabetically in ascending order and write them
 Will return all products containing 'evergreen', unsorted, no matter 
 if they have a feature or not, and displayed to the screen
 
+## Logging
+When running the webscraper for the first time, a log file will be
+created and saved in the project folder. It will log the progress of the 
+webscraper while it scrapes products and features. 
+All subsequent scrapes will simply add new details to the log 
+file which was already created after the first scrape. To view 
+a new log file every time you scrape, simply delete the one that 
+has been created from the previous scrape.
+For detailed information about the webscraping processes 
+please check the log file.
+
 
 ## SQL Database Layout
 SQL was used to create a database that would store the 
@@ -235,14 +240,13 @@ share the same type_id because they are all Plastic Saucers.
 
 ### general_product_names
 
-general_product_names contains type_id and product_name columns. The
+general_product_names contains type_id and type_name columns. The
 primary key for this table is type_id.
 In this table, each unique type_id is matched with its 
 corresponding product type. Using the Plastic Saucer example above,
 this means that every Plastic Saucer will have the same type_id.
 
-![](.README_images/saucer_general.png)
-
+![](.README_images/sql_type_name.png)
 
 ### all_products
 
@@ -278,7 +282,7 @@ on the webshop and assigns each of them a unique feature_id.
 
 ### features_prod_join
 
-The feature_prod_join table contains feature_id and product_name columns.
+The feature_prod_join table contains feature_id and type_name columns.
 This table matches the many to many relationship between the features and 
 product types.
 
@@ -289,29 +293,91 @@ ERD diagram (plant_db_ERD.pdf)
 
 
 ## SQL Database Usage
-This section will serve as a walkthrough to successfully integrate the
+This section will serve as a walk-through to successfully integrate the
 SQL database with the webscraper. Make sure you set up the database
-before running the webscraper if you wish to store your data in SQL.
+before running the webscraper if you wish to store your data in an SQL
+database.
 
-1. Make sure you have MySQL workbench installed
-2. Open MySQL workbench and load create_db.sql
+1. Go to https://www.mysql.com/downloads/ and click on MySQL (GPL) 
+Downloads
 
-    ![](.README_images/sql_load.png)
-    
-3. Run the entire script. A new database named plant_db will be created. 
-To check, first open mysql in the command line. 
-Using the following command, a list of databases will be returned
+2. Click on MySQL Community Server
+
+3. Download the version of MySQL suited for whatever OS you
+are working with
+
+4. Install the package that was downloaded and create a password
+
+5. Locate the SQL directory and add it to the path variables
+
+6. In the CLI, access MySQL with the following command and hit Enter:
+    ```
+    mysql -u root -p
+    ```
+
+7. At this point, you will be asked for your password that you created
+earlier. Type in your password and hit Enter
+
+8. Within the project repository there is a create_db.sql file.
+Find the path to create_db.sql and run the following command in the CLI
+   ```
+   mysql > source path/to/create_db.sql
+   ```
+
+9. A new database named plant_db will be created. 
+To check this, use the following command, and a list of databases will be returned
  
     ![](.README_images/sql_terminal.png)
        
-4. In the project files, open web_scraper_config.py
+10. In the project files, open web_scraper_config.py
 
     ![](.README_images/config.png)
     
-5. At the bottom of the page you will find constants that start with SQL
-6. Fill in the relevant information for each variable
+11. At the bottom of the page you will find constants that start with SQL
+12. Fill in the relevant information for each variable. Your password
+should be filled in SQL_PASS
     
     ![](.README_images/sql_var.png)
     
-7. Now you're all setup! Once you run the webscraper and select db for 
+13. Now you're all setup! Once you run the webscraper and select db for 
 the --output option, your data will be recorded in the database!
+
+## Problems encountered
+While testing the program, few issues were encountered.
+Occasionally when attempting to request the html code for the 
+product features, a None response was returned when using grequests. 
+The program was modified to continue running even when encountering this 
+issue. If for whatever reason, the html code of a particular features page 
+cannot be accessed, the user will be notified and the code will 
+continue running without scraping through the inaccessible data.
+
+Another similar issue was encountered when trying to access the html
+code of each product. If the first request is unsuccessful,
+the program will attempt to request the html code a number of times as
+is specified by the default value defined in web_scraper_config.py file.
+Users may specify the number of attempts as is discussed in the **CLI Commands**
+section of this document. If these requests are unsuccessful, the program will 
+disregard that particular product and will continue with the next products
+and pages.
+
+Additionally, the webshop modified their html code several times
+before the third checkpoint and as such we were forced to make changes 
+in our code to scrape data from their webpage. If you encounter any errors, 
+they are very likely caused by changes and updates in the webshop's html code. 
+
+Lastly, our original idea was to use the ebay API to compare prices of their
+plants with the prices of plants scraped from the webshop. Unfortunately our 
+request for an API token was never approved despite the site claiming 
+it should take one business day. We searched for various APIs related 
+to plants but they were also down or under maintenance. In the end we 
+found a public API developed by growstuff.org. However in their 
+documentation they mention that:
+
+> At present there is no official API, as our site is still changing so rapidly. 
+> However, we do expose some of our data via JSON and/or RSS feeds, and 
+> you're welcome to play with it, on the understanding that it 
+> may change under you. 
+
+They have provided very limited information and query capabilities 
+are non functional at this stage. As such, our code retrieves all the 
+information available from the API.

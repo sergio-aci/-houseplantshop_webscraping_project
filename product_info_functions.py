@@ -5,46 +5,50 @@ all product information for each product listed.
 """
 import sys
 import time
+import logging
 import pandas as pd
-import web_scraper_config as CFG
 import requests
 from bs4 import BeautifulSoup
 import pymysql.cursors
-import logging
+import web_scraper_config as CFG
 
 
 class Products:
+    """
+    This is the class related to the information of Products.
+    """
     def __init__(self, features_and_products_df, **kwargs):
         """
+        Constructor for Products.
         Gets the products according to the 'scraping' option: either from the
-        web scraping process or from a products.sv file that could have been
+        web scraping process or from a products.csv file that could have been
         created by this script before.
         Then, filters the products according to the parameters received.
+        :param Products instance
         :param features_and_products_df: dataframe with filtered features and
         their partly filtered products (flattened).
         :param kwargs: parameters received from the CLI
         :return: products_df: dataframe
         """
-        print('Extracting products...')
         products_columns = ['Name', 'Type', 'Option', 'Price', 'Is Sold Out']
         self.products_df = pd.DataFrame(columns=products_columns)
         if not kwargs['scrape']:
             self.products_df = self.process_input_file(features_and_products_df, **kwargs)
         else:
+            print('Extracting products...')
             self.productsdf = self.process_pages(features_and_products_df, **kwargs)
+            print('Products extracted!')
         self.products_df.set_index(['Name', 'Type', 'Option'], inplace=True)
-        print('Products extracted!')
 
     def process_input_file(self, features_and_products_df, **kwargs):
         """
-        Gets the file products.sv that was previously created as an input.
+        Gets the file products.csv that was previously created as an input.
         Therefore, no scraping is performed. Then filters the products
         according to the received parameters.
-        :param self: Products: object
         :param features_and_products_df: dataframe with filtered features and
         their partly filtered products (flattened).
         :param kwargs: parameters to be used for filtering
-        :return: products_df: dataframe
+        :return: products_df: object dataframe
         """
         try:
             products_to_filter_df = pd.read_csv('products.csv')
@@ -63,12 +67,11 @@ class Products:
     def process_pages(self, features_and_products_df, **kwargs):
         """
         Processes the pages of the web site to scrape information, returns
-        the information scraped in a dataframe
-        :param self: Product object
+        the updated scraped information.
         :param features_and_products_df: dataframe with filtered features and
         their partly filtered products (flattened).
         :param kwargs: parameters to be used for filtering
-        :return: updated Product object
+        :return: products_df: object dataframe
         """
         url_second_part = CFG.URL_SECOND_PART_FIRST_TIME
         attempts = CFG.ATTEMPTS if kwargs['retries'] is None else kwargs['retries']
@@ -144,30 +147,29 @@ class Products:
         if not (kwargs['feature'] is None and not kwargs['break_down']):
             products_to_filter_df = \
                 features_and_products_df.merge(products_to_filter_df,
-                                                    how='inner', left_on='Products',
-                                                    right_on='Name')
+                                               how='inner', left_on='Products',
+                                               right_on='Name')
             products_to_filter_df.drop(['Feature', 'Products'], axis=1, inplace=True)
             products_to_filter_df.drop_duplicates(inplace=True)
-        filter = (products_to_filter_df['Name'].str.contains(kwargs['product'],
-                                                             case=False,
-                                                             regex=False,
-                                                             na=False)) \
+        products_filter = (products_to_filter_df['Name'].str.contains(kwargs['product'],
+                                                                      case=False,
+                                                                      regex=False,
+                                                                      na=False)) \
         & (products_to_filter_df['Price'].between(price_inferior_limit,
                                                   price_superior_limit)) \
         & (products_to_filter_df['Is Sold Out'].between(boolean_to_compare_1,
                                                         boolean_to_compare_2))
-        return products_to_filter_df[filter]
+        return products_to_filter_df[products_filter]
 
     def process_products(self, page_products, features_and_products_df, **kwargs):
         """
         Updates the products_df dataframe with all the products of a page
-        :param self: Product object to be updated
         :param page_products: bs4 object - raw information of products of a page
         to be used as input
         :param features_and_products_df: dataframe with filtered features and
         their partly filtered products (flattened).
         :param kwargs: parameters to be used for filtering
-        :return: updated dataframe products_df
+        :return: products_df: object dataframe, updated
         """
         filter_products_names = [name.get_text().strip(CFG.CHARACTERS_TO_STRIP)
                                  for name in page_products.select(".productitem--title")]
@@ -314,24 +316,40 @@ class Products:
                                            for option_type_raw in options_types_raw])
 
     def get_product_info(self, product):
+        """
+        Given a product, return its information
+        :return: products_df row: object dataframe row
+        """
         return self.products_df.loc[product]
 
     def sort_products(self, how, is_in_ascending_order):
+        """
+        Sorts the products according to the desired category and order.
+        :param how: indicates how products are to be sorted
+        :param is_in_ascending_order: order features and products are to be sorted
+        :return:
+        """
         if how == 'index':
             self.products_df.sort_index(ascending=is_in_ascending_order, inplace=True)
         else:
             self.products_df.sort_values(by='Price', ascending=is_in_ascending_order, inplace=True)
 
     def display_products(self):
+        """
+        Displays the products.
+        :return:
+        """
         print('Product/s:')
         print(self.products_df.to_string())
 
     def fill_products_df(self):
         """
-        This function takes a dataframe of products and inserts all the data into the general_product_name
-        and all_products tables in a pre-existing plant_db SQL database.
-        The tables are first refreshed before values are updated. All user information to connect
-        to the database can be modified in the web_scraper_config.py file.
+        This function takes a dataframe of products and inserts all the
+        data into the general_product_name and all_products tables in a
+        pre-existing plant_db SQL database. The tables are first
+        refreshed before values are updated. All user information to
+        connect to the database can be modified in the
+        web_scraper_config.py file.
         """
         connection = pymysql.connect(host=CFG.SQL_HOST,
                                      user=CFG.SQL_USER,
@@ -366,27 +384,33 @@ class Products:
                 repeated[index[CFG.NAME_INDEX]] = type_id
                 type_id += 1
 
-                if rows['Is Sold Out'] == True:
+                if rows['Is Sold Out']:
                     bool_val = 1
                 else:
                     bool_val = 0
 
                 try:
                     with connection.cursor() as cursor:
-                        sql_command_general = """ INSERT INTO general_product_names VALUES (%s, %s)"""
-                        cursor.execute(sql_command_general, (repeated.get(index[CFG.NAME_INDEX]),
-                                                             index[CFG.NAME_INDEX]))
+                        sql_command_general = \
+                            """ INSERT INTO general_product_names VALUES (%s, %s)"""
+                        cursor.execute(sql_command_general,
+                                       (repeated.get(index[CFG.NAME_INDEX]),
+                                        index[CFG.NAME_INDEX]))
                     connection.commit()
                 except Exception:
                     pass
 
                 try:
                     with connection.cursor() as cursor:
-                        sql_command_products = """ INSERT INTO all_products VALUES (%s, %s, %s, %s, %s)"""
+                        sql_command_products = \
+                         """ INSERT INTO all_products VALUES (%s, %s, %s, %s, %s)"""
                         cursor.execute(sql_command_products,
-                                       (product_id, repeated.get(index[CFG.NAME_INDEX]),
-                                        index[CFG.NAME_INDEX] + ' ' + str(index[CFG.TYPE_INDEX]) + ' ' +
-                                        str(index[CFG.OPTION_INDEX]), rows['Price'], bool_val))
+                                       (product_id,
+                                        repeated.get(index[CFG.NAME_INDEX]),
+                                        index[CFG.NAME_INDEX] + ' '
+                                        + str(index[CFG.TYPE_INDEX]) + ' ' +
+                                        str(index[CFG.OPTION_INDEX]),
+                                        rows['Price'], bool_val))
 
                     connection.commit()
                 except Exception:
@@ -394,26 +418,30 @@ class Products:
 
             else:
 
-                if rows['Is Sold Out'] == True:
+                if rows['Is Sold Out']:
                     bool_val = 1
                 else:
                     bool_val = 0
 
                 try:
                     with connection.cursor() as cursor:
-                        sql_command_general = """ INSERT INTO general_product_names VALUES (%s, %s)"""
-                        cursor.execute(sql_command_general, (repeated.get(index[CFG.NAME_INDEX]),
-                                                             index[CFG.NAME_INDEX]))
+                        sql_command_general = \
+                            """ INSERT INTO general_product_names VALUES (%s, %s)"""
+                        cursor.execute(sql_command_general,
+                                       (repeated.get(index[CFG.NAME_INDEX]),
+                                        index[CFG.NAME_INDEX]))
                     connection.commit()
                 except Exception:
                     pass
 
                 try:
                     with connection.cursor() as cursor:
-                        sql_command_products = """ INSERT INTO all_products VALUES (%s, %s, %s, %s, %s)"""
+                        sql_command_products = \
+                         """ INSERT INTO all_products VALUES (%s, %s, %s, %s, %s)"""
                         cursor.execute(sql_command_products,
                                        (product_id, repeated.get(index[CFG.NAME_INDEX]),
-                                        index[CFG.NAME_INDEX] + ' ' + str(index[CFG.TYPE_INDEX]) + ' ' +
+                                        index[CFG.NAME_INDEX] + ' '
+                                        + str(index[CFG.TYPE_INDEX]) + ' ' +
                                         str(index[CFG.OPTION_INDEX]), rows['Price'], bool_val))
                     connection.commit()
                 except Exception:
@@ -424,8 +452,61 @@ class Products:
         connection.close()
 
     def output_products(self, **kwargs):
+        """
+        Outputs the products per the attached parameters.
+        :param kwargs: parameters to be used for outputting
+        :return:
+        """
         if kwargs['output'].lower() == 'csv':
             self.products_df.to_csv('products.csv')
         elif kwargs['output'].lower() == 'json':
             self.products_df.to_json('products.json', orient="index")
 
+    @staticmethod
+    def api_products_to_sql(api_info):
+        """
+        This function take a dictionary with crops and their features and inserts the data into the
+        tables relevant to products in the SQL database that has already been created.
+        """
+        logging.info('Updating database with product API info')
+        connection = pymysql.connect(host=CFG.SQL_HOST,
+                                     user=CFG.SQL_USER,
+                                     password=CFG.SQL_PASS,
+                                     db=CFG.SQL_DB,
+                                     charset=CFG.SQL_CHARSET,
+                                     cursorclass=pymysql.cursors.DictCursor
+                                     )
+        cursor = connection.cursor()
+        connection.commit()
+
+        sql_count_general = """ Select count(*) from general_product_names"""
+        cursor.execute(sql_count_general)
+        gen_prod_counts = cursor.fetchall()[0].get('count(*)') + 1
+
+        sql_count_all = """ Select count(*) from all_products"""
+        cursor.execute(sql_count_all)
+        all_prod_counts = cursor.fetchall()[0].get('count(*)') + 1
+
+        for product in api_info.keys():
+            try:
+                with connection.cursor() as cursor:
+                    sql_general = """ INSERT INTO general_product_names VALUES (%s, %s)"""
+                    cursor.execute(sql_general, (gen_prod_counts, product))
+                connection.commit()
+            except Exception:
+                pass
+
+            try:
+                with connection.cursor() as cursor:
+                    sql_all = """ INSERT INTO all_products VALUES (%s, %s, %s, %s, %s)"""
+                    cursor.execute(sql_all, (all_prod_counts, gen_prod_counts,
+                                             product, 0, 1))
+                connection.commit()
+            except Exception:
+                pass
+
+            all_prod_counts += 1
+            gen_prod_counts += 1
+
+        logging.info('Product API update completed')
+        connection.close()
