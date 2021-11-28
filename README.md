@@ -1,8 +1,8 @@
 # House Plant Shop Webscraping Project
 May 2021 (v3.0)
 
-This webscraper (v3.0) is currently being developed by Sergio Drajner and
-Isaac Misri as part of the ITC Data Science Fellows Program 
+This webscraper (v3.0) was developed by Sergio Drajner and
+Isaac Misri as part of the ITC Data Science Fellows Program. 
 
 ## Description
 Plants and plant products are sold in many different varieties. Even
